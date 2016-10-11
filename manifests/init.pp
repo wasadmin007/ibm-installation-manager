@@ -30,6 +30,8 @@ class ibm_installation_manager (
     exec { "mkdir -p ${source_dir}":
       creates => $source_dir,
       path    => '/bin:/usr/bin:/sbin:/usr/sbin',
+      user    => "$user",
+      group   => "$group"
     }
 
     package { 'unzip':
@@ -50,14 +52,24 @@ class ibm_installation_manager (
       creates      => "${source_dir}/tools/imcl",
       require      => File[$source_dir],
       before       => Exec['Install IBM Installation Manager'],
-    }
+      user 	   => $user,
+      group        => $group
+    } ~>
+     exec {"chown ${source_dir}":
+         command  => "chown -R $user:$group ${source_dir}",
+         path     => ['/bin','/usr/bin','/usr/sbin'] 
+     }
   }
-
+   
   exec { 'Install IBM Installation Manager':
-    command => "${source_dir}/installc ${_options}",
+    command => "${source_dir}/userinstc ${_options}",
     creates => "${target}/eclipse/tools/imcl",
     cwd     => $source_dir,
     user    => $user,
     timeout => $timeout,
+  } ~>
+  exec {'Installation Manager Permission':
+     command  => "chown -R $user:$group ${target}",
+     path     => ['/bin','/usr/bin/','/usr/sbin/']
   }
 }
